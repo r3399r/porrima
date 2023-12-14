@@ -10,7 +10,7 @@ export enum Status {
   Step9End = 'end',
 }
 
-export enum Step1 {
+export enum OrderType {
   Repair = '修理',
   Custom = 'カスタム',
   Rework = 'ReWork',
@@ -18,7 +18,7 @@ export enum Step1 {
   Back = '戻る',
 }
 
-export enum Step2 {
+export enum TargetType {
   Wallet = 'お財布',
   Bags = '鞄・バッグ',
   Accessories = '小物',
