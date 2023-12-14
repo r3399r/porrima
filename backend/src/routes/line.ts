@@ -25,7 +25,9 @@ const defaultLine = async () => {
 
   switch (event.httpMethod) {
     case 'POST':
-      return await service.chat(JSON.parse(event.body) as WebhookRequestBody);
+      return await service.handleRequestBody(
+        JSON.parse(event.body) as WebhookRequestBody
+      );
   }
 
   throw new Error('unexpected httpMethod');

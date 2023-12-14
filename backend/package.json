@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@line/bot-sdk": "^8.0.2",
+    "aws-sdk": "^2.1518.0",
     "inversify": "^6.0.2",
     "reflect-metadata": "^0.1.14",
     "tslib": "^2.6.2"

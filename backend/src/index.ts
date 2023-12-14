@@ -3,7 +3,7 @@ import line from './routes/line';
 import { errorOutput, successOutput } from './utils/LambdaHelper';
 
 export const api = async (event: LambdaEvent, _context: LambdaContext) => {
-  console.log(event);
+  console.log(event.httpMethod, event.resource, event.body);
 
   try {
     let res: any;
