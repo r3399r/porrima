@@ -408,9 +408,14 @@ export class ChatService {
           MeetingType: event.postback.data,
         });
         await this.sendStep6Message(event.replyToken);
-      } else if (event.postback.data === MeetingType.No)
+      } else if (event.postback.data === MeetingType.No) {
+        await this.saveReservation({
+          ...latestReservation,
+          Status: Status.Step7ExtraComment,
+          MeetingType: event.postback.data,
+        });
         await this.sendStep7Message(event.replyToken);
-      else await this.sendStep5Message(event.replyToken);
+      } else await this.sendStep5Message(event.replyToken);
     else if (latestReservation.Status === Status.Step6SelectMeetingTime)
       if (event.postback.data === 'ご予約' && event.postback.params) {
         const datetime = (event.postback.params as { datetime: string })
