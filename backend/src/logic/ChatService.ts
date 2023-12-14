@@ -63,6 +63,18 @@ export class ChatService {
       .promise();
   }
 
+  private async deleteReservation(data: Reservation) {
+    await this.dynamoDb
+      .deleteItem({
+        Key: Converter.marshall({
+          UserId: data.UserId,
+          CreatedAt: data.CreatedAt,
+        }),
+        TableName: this.tableName,
+      })
+      .promise();
+  }
+
   private genPostbackAction(
     data: string,
     label?: string,
@@ -203,7 +215,7 @@ export class ChatService {
   ) {
     const message = {
       type: 'text',
-      text: '他、当店にお伝えしたいことはありますでしょうか?',
+      text: '他、当店にお伝えしたいことはありますでしょうか?\ntype "No" if no extra comment',
     };
     await this.client.replyMessage({
       replyToken: token,
@@ -233,14 +245,53 @@ export class ChatService {
         latestReservation.Status === Status.Step8End
       )
         await this.sendStep1Message(event.replyToken, user.displayName);
-      else if (latestReservation.Status === Status.Step1SelectOrderType)
-        await this.sendStep1Message(event.replyToken, user.displayName);
       else if (latestReservation.Status === Status.Step2SelectTargetType)
         await this.sendStep2Message(event.replyToken);
       else if (latestReservation.Status === Status.Step3SelectQuantity)
         await this.sendStep3Message(event.replyToken);
       else if (latestReservation.Status === Status.Step4RequestPhoto)
         await this.sendStep4Message(event.replyToken);
+
+    if (
+      event.message.type === 'text' &&
+      latestReservation?.Status === Status.Step7ExtraComment
+    ) {
+      await this.saveReservation({
+        ...latestReservation,
+        Status: Status.Step8End,
+        Comment: event.message.text,
+      });
+      await this.client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [
+          {
+            type: 'text',
+            text: 'ありがとうございます。',
+          },
+          {
+            type: 'text',
+            text: `今回のチャットでは以下の通りとなりました。ご確認ください。\nご用件 : ${
+              latestReservation.OrderType
+            }\n修理対象 : ${latestReservation.TargetType}\n修理箇所 : ${
+              latestReservation.Quantity
+            }\n写真 : アップロードいただいた通り\nご相談 : ${
+              latestReservation.MeetingType
+            }\nご相談日時 : ${
+              latestReservation.MeetingTime
+                ? format(
+                    new Date(latestReservation.MeetingTime),
+                    'yyyy/MM/ddのHH:mm'
+                  )
+                : '-'
+            }\nその他 : ${event.message.text}`,
+          },
+          {
+            type: 'text',
+            text: 'この度はご利用ありがとうございました。また、ご連絡差し上げます。',
+          },
+        ],
+      });
+    }
 
     if (
       event.message.type === 'image' &&
@@ -257,7 +308,9 @@ export class ChatService {
       const buffer = Buffer.concat(chunks);
 
       const fileType = await fromBuffer(buffer);
-      const filename = `${user.userId}/${Date.now()}.${fileType?.ext}`;
+      const filename = `${user.userId}/${
+        latestReservation.CreatedAt
+      }/${Date.now()}.${fileType?.ext}`;
       const readableStream = new Readable({
         read() {
           this.push(buffer);
@@ -356,11 +409,7 @@ export class ChatService {
         });
         await this.sendStep3Message(event.replyToken);
       } else if (event.postback.data === TargetType.Back) {
-        await this.saveReservation({
-          UserId: latestReservation.UserId,
-          CreatedAt: latestReservation.CreatedAt,
-          Status: Status.Step1SelectOrderType,
-        });
+        await this.deleteReservation(latestReservation);
         await this.sendStep1Message(event.replyToken, user.displayName);
       } else await this.sendStep2Message(event.replyToken);
     else if (latestReservation.Status === Status.Step3SelectQuantity)
@@ -417,6 +466,8 @@ export class ChatService {
           time: datetime,
         });
       } else await this.sendStep6Message(event.replyToken);
+    else if (latestReservation.Status === Status.Step7ExtraComment)
+      await this.sendStep7Message(event.replyToken);
   }
 
   private async handleFollowEvent(event: FollowEvent) {
