@@ -6,11 +6,13 @@ import {
 import { DynamoDB, S3 } from 'aws-sdk';
 import { Container } from 'inversify';
 import { ChatService } from './logic/ChatService';
+import { ReservationService } from './logic/ReservationService';
 
 const container: Container = new Container();
 
 // service
-container.bind<ChatService>(ChatService).toSelf();
+container.bind(ChatService).toSelf();
+container.bind(ReservationService).toSelf();
 
 // LINE
 container.bind(MessagingApiClient).toDynamicValue(

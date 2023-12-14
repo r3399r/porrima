@@ -1,5 +1,6 @@
 import { LambdaContext, LambdaEvent } from './model/Lambda';
 import line from './routes/line';
+import reservation from './routes/reservation';
 import { errorOutput, successOutput } from './utils/LambdaHelper';
 
 export const api = async (event: LambdaEvent, _context: LambdaContext) => {
@@ -13,6 +14,8 @@ export const api = async (event: LambdaEvent, _context: LambdaContext) => {
       case 'line':
         res = await line(event);
         break;
+      case 'reservation':
+        res = await reservation(event);
     }
 
     return successOutput(res);

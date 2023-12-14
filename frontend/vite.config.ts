@@ -12,5 +12,13 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
+  },
+  server: {
+    proxy: {
+      "/api": {
+        target: "https://dzv5g9z0j8v8j.cloudfront.net",
+        changeOrigin: true,
+      },
+    },
   }
 })
