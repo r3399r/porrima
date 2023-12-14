@@ -1,13 +1,12 @@
 export enum Status {
-  Step1Greeting = 'greeting',
-  Step2SelectOrderType = 'order-type',
-  Step3SelectTargetType = 'target-type',
-  Step4SelectQuantity = 'quantity',
-  Step5RequestPhoto = 'photo',
-  Step6SelectMeetingType = 'meeting-type',
-  Step7SelectMeetingTime = 'meeting-time',
-  Step8ExtraComment = 'extra-comment',
-  Step9End = 'end',
+  Step1SelectOrderType = 'order-type',
+  Step2SelectTargetType = 'target-type',
+  Step3SelectQuantity = 'quantity',
+  Step4RequestPhoto = 'photo',
+  Step5SelectMeetingType = 'meeting-type',
+  Step6SelectMeetingTime = 'meeting-time',
+  Step7ExtraComment = 'extra-comment',
+  Step8End = 'end',
 }
 
 export enum OrderType {

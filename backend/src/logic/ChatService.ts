@@ -3,7 +3,6 @@ import {
   FollowEvent,
   MessageEvent,
   PostbackEvent,
-  Profile,
   WebhookEvent,
   WebhookRequestBody,
 } from '@line/bot-sdk';
@@ -13,6 +12,7 @@ import {
 } from '@line/bot-sdk/dist/messaging-api/api';
 import { DynamoDB, S3 } from 'aws-sdk';
 import { Converter } from 'aws-sdk/clients/dynamodb';
+import { format } from 'date-fns';
 import { fromBuffer } from 'file-type';
 import { inject, injectable } from 'inversify';
 import {
@@ -185,13 +185,53 @@ export class ChatService {
     });
   }
 
-  private async doStep1(token: string, user: Profile) {
-    await this.saveReservation({
-      UserId: user.userId,
-      CreatedAt: new Date().toISOString(),
-      Status: Status.Step1Greeting,
+  private async sendStep6Message(token: string) {
+    await this.client.replyMessage({
+      replyToken: token,
+      messages: [
+        {
+          type: 'template',
+          altText: 'ご予約',
+          template: {
+            type: 'buttons',
+            text: 'Choose a Time&date of Online/Shop meeting',
+            actions: [
+              {
+                type: 'datetimepicker',
+                label: 'ご予約',
+                data: 'ご予約',
+                mode: 'datetime',
+              },
+            ],
+          },
+        },
+      ],
     });
-    await this.sendStep1Message(token, user.displayName);
+  }
+
+  private async sendStep7Message(
+    token: string,
+    meeting?: { type: string; time: string }
+  ) {
+    const message = {
+      type: 'text',
+      text: '他、当店にお伝えしたいことはありますでしょうか?',
+    };
+    await this.client.replyMessage({
+      replyToken: token,
+      messages: meeting
+        ? [
+            {
+              type: 'text',
+              text: `ご予約ありがとうございます。${format(
+                new Date(meeting.time),
+                'yyyy/MM/ddのHH:mm'
+              )}~、${meeting.type} ご予約を承りました。`,
+            },
+            message,
+          ]
+        : [message],
+    });
   }
 
   private async handleMessageEvent(event: MessageEvent) {
@@ -202,21 +242,21 @@ export class ChatService {
     if (event.message.type === 'text' && event.message.text === '予約する')
       if (
         latestReservation === null ||
-        latestReservation.Status === Status.Step9End
+        latestReservation.Status === Status.Step8End
       )
-        await this.doStep1(event.replyToken, user);
-      else if (latestReservation.Status === Status.Step1Greeting)
         await this.sendStep1Message(event.replyToken, user.displayName);
-      else if (latestReservation.Status === Status.Step2SelectOrderType)
+      else if (latestReservation.Status === Status.Step1SelectOrderType)
+        await this.sendStep1Message(event.replyToken, user.displayName);
+      else if (latestReservation.Status === Status.Step2SelectTargetType)
         await this.sendStep2Message(event.replyToken);
-      else if (latestReservation.Status === Status.Step3SelectTargetType)
+      else if (latestReservation.Status === Status.Step3SelectQuantity)
         await this.sendStep3Message(event.replyToken);
-      else if (latestReservation.Status === Status.Step4SelectQuantity)
+      else if (latestReservation.Status === Status.Step4RequestPhoto)
         await this.sendStep4Message(event.replyToken);
 
     if (
       event.message.type === 'image' &&
-      latestReservation?.Status === Status.Step4SelectQuantity
+      latestReservation?.Status === Status.Step4RequestPhoto
     ) {
       const contentStream = await this.blobClient.getMessageContent(
         event.message.id
@@ -274,22 +314,21 @@ export class ChatService {
 
     if (
       latestReservation === null ||
-      latestReservation.Status === Status.Step9End
+      latestReservation.Status === Status.Step8End
     )
-      await this.doStep1(event.replyToken, user);
-    else if (latestReservation.Status === Status.Step1Greeting)
-      if (event.postback.data === OrderType.Rework) {
+      if (event.postback.data === OrderType.Rework)
         await this.client.replyMessage({
           replyToken: event.replyToken,
           messages: [
             { type: 'text', text: '申し訳ございません。ReWorkは準備中です' },
           ],
         });
-        await this.deleteReservation(latestReservation);
-      } else if (event.postback.data === OrderType.Other) {
+      // await this.deleteReservation(latestReservation);
+      else if (event.postback.data === OrderType.Other) {
         await this.saveReservation({
-          ...latestReservation,
-          Status: Status.Step9End,
+          UserId: user.userId,
+          CreatedAt: new Date().toISOString(),
+          Status: Status.Step8End,
           OrderType: event.postback.data,
         });
         await this.client.replyMessage({
@@ -310,13 +349,14 @@ export class ChatService {
         event.postback.data === OrderType.Custom
       ) {
         await this.saveReservation({
-          ...latestReservation,
-          Status: Status.Step2SelectOrderType,
+          UserId: user.userId,
+          CreatedAt: new Date().toISOString(),
+          Status: Status.Step2SelectTargetType,
           OrderType: event.postback.data,
         });
         await this.sendStep2Message(event.replyToken);
       } else await this.sendStep1Message(event.replyToken, user.displayName);
-    else if (latestReservation.Status === Status.Step2SelectOrderType)
+    else if (latestReservation.Status === Status.Step2SelectTargetType)
       if (
         event.postback.data === TargetType.Wallet ||
         event.postback.data === TargetType.Bags ||
@@ -324,7 +364,7 @@ export class ChatService {
       ) {
         await this.saveReservation({
           ...latestReservation,
-          Status: Status.Step3SelectTargetType,
+          Status: Status.Step3SelectQuantity,
           TargetType: event.postback.data,
         });
         await this.sendStep3Message(event.replyToken);
@@ -332,24 +372,59 @@ export class ChatService {
         await this.saveReservation({
           UserId: latestReservation.UserId,
           CreatedAt: latestReservation.CreatedAt,
-          Status: Status.Step1Greeting,
+          Status: Status.Step1SelectOrderType,
         });
         await this.sendStep1Message(event.replyToken, user.displayName);
       } else await this.sendStep2Message(event.replyToken);
-    else if (latestReservation.Status === Status.Step3SelectTargetType) {
-      await this.saveReservation({
-        ...latestReservation,
-        Status: Status.Step4SelectQuantity,
-        Quantity: Number(event.postback.data),
-      });
-      await this.sendStep4Message(event.replyToken);
-    } else if (latestReservation.Status === Status.Step4SelectQuantity) {
-      await this.saveReservation({
-        ...latestReservation,
-        Status: Status.Step5RequestPhoto,
-      });
-      await this.sendStep5Message(event.replyToken);
-    }
+    else if (latestReservation.Status === Status.Step3SelectQuantity)
+      if (
+        ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].includes(
+          event.postback.data
+        )
+      ) {
+        await this.saveReservation({
+          ...latestReservation,
+          Status: Status.Step4RequestPhoto,
+          Quantity: Number(event.postback.data),
+        });
+        await this.sendStep4Message(event.replyToken);
+      } else await this.sendStep3Message(event.replyToken);
+    else if (latestReservation.Status === Status.Step4RequestPhoto)
+      if (event.postback.data === '完了') {
+        await this.saveReservation({
+          ...latestReservation,
+          Status: Status.Step5SelectMeetingType,
+        });
+        await this.sendStep5Message(event.replyToken);
+      } else await this.sendStep4Message(event.replyToken);
+    else if (latestReservation.Status === Status.Step5SelectMeetingType)
+      if (
+        event.postback.data === MeetingType.Online ||
+        event.postback.data === MeetingType.Store
+      ) {
+        await this.saveReservation({
+          ...latestReservation,
+          Status: Status.Step6SelectMeetingTime,
+          MeetingType: event.postback.data,
+        });
+        await this.sendStep6Message(event.replyToken);
+      } else if (event.postback.data === MeetingType.No)
+        await this.sendStep7Message(event.replyToken);
+      else await this.sendStep5Message(event.replyToken);
+    else if (latestReservation.Status === Status.Step6SelectMeetingTime)
+      if (event.postback.data === 'ご予約' && event.postback.params) {
+        const datetime = (event.postback.params as { datetime: string })
+          .datetime;
+        await this.saveReservation({
+          ...latestReservation,
+          Status: Status.Step7ExtraComment,
+          MeetingTime: datetime,
+        });
+        await this.sendStep7Message(event.replyToken, {
+          type: latestReservation.MeetingType ?? '',
+          time: datetime,
+        });
+      } else await this.sendStep6Message(event.replyToken);
   }
 
   private async handleFollowEvent(event: FollowEvent) {
