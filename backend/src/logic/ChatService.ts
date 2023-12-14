@@ -63,18 +63,6 @@ export class ChatService {
       .promise();
   }
 
-  private async deleteReservation(data: Reservation) {
-    await this.dynamoDb
-      .deleteItem({
-        Key: Converter.marshall({
-          UserId: data.UserId,
-          CreatedAt: data.CreatedAt,
-        }),
-        TableName: this.tableName,
-      })
-      .promise();
-  }
-
   private genPostbackAction(
     data: string,
     label?: string,
@@ -323,7 +311,6 @@ export class ChatService {
             { type: 'text', text: '申し訳ございません。ReWorkは準備中です' },
           ],
         });
-      // await this.deleteReservation(latestReservation);
       else if (event.postback.data === OrderType.Other) {
         await this.saveReservation({
           UserId: user.userId,
