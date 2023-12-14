@@ -25,6 +25,12 @@ export enum TargetType {
   Back = '戻る',
 }
 
+export enum MeetingType {
+  Online = 'オンライン通話でご相談',
+  Store = '店頭でご相談',
+  No = '相談不要',
+}
+
 export type Reservation = {
   UserId: string;
   CreatedAt: string;

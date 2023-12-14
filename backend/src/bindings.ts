@@ -1,6 +1,9 @@
 import 'reflect-metadata';
-import { MessagingApiClient } from '@line/bot-sdk/dist/messaging-api/api';
-import { DynamoDB } from 'aws-sdk';
+import {
+  MessagingApiBlobClient,
+  MessagingApiClient,
+} from '@line/bot-sdk/dist/messaging-api/api';
+import { DynamoDB, S3 } from 'aws-sdk';
 import { Container } from 'inversify';
 import { ChatService } from './logic/ChatService';
 
@@ -16,8 +19,15 @@ container.bind(MessagingApiClient).toDynamicValue(
       channelAccessToken: process.env.CHANNEL_TOKEN || '',
     })
 );
+container.bind(MessagingApiBlobClient).toDynamicValue(
+  () =>
+    new MessagingApiBlobClient({
+      channelAccessToken: process.env.CHANNEL_TOKEN || '',
+    })
+);
 
 // AWS
 container.bind(DynamoDB).toDynamicValue(() => new DynamoDB());
+container.bind(S3).toDynamicValue(() => new S3());
 
 export { container as bindings };
