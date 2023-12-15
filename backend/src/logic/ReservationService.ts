@@ -4,7 +4,7 @@ import { DynamoDB, S3 } from 'aws-sdk';
 import { Converter, Key, ScanOutput } from 'aws-sdk/clients/dynamodb';
 import { format } from 'date-fns';
 import { inject, injectable } from 'inversify';
-import { Reservation, Status } from 'src/model/Entity';
+import { Reservation } from 'src/model/Entity';
 import { compare } from 'src/util/compare';
 
 /**

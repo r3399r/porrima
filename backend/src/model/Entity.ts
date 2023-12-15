@@ -25,7 +25,8 @@ export enum TargetType {
 }
 
 export enum MeetingType {
-  Online = 'オンライン通話でご相談',
+  Line = 'LINEでご相談',
+  Online = '他オンラインツールでご相談',
   Store = '店頭でご相談',
   No = '相談不要',
 }

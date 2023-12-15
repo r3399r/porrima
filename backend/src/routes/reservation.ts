@@ -1,6 +1,4 @@
-import { WebhookRequestBody } from '@line/bot-sdk';
 import { bindings } from 'src/bindings';
-import { ChatService } from 'src/logic/ChatService';
 import { ReservationService } from 'src/logic/ReservationService';
 import { BadRequestError } from 'src/model/error';
 import { LambdaEvent } from 'src/model/Lambda';

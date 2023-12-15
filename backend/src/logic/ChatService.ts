@@ -1,6 +1,5 @@
 import { Readable } from 'stream';
 import {
-  FollowEvent,
   MessageEvent,
   PostbackEvent,
   WebhookEvent,
@@ -118,7 +117,7 @@ export class ChatService {
       messages: [
         {
           type: 'text',
-          text: 'お財布 / 鞄・バッグ / 小物 / 戻る',
+          text: 'どのような種類でしょうか? もし間違われた場合は 戻る とご記載ください',
           quickReply: {
             items: [
               this.genPostbackAction(TargetType.Wallet),
@@ -175,6 +174,7 @@ export class ChatService {
           text: 'お写真ありがとうございます。 改めて状態を確認したうえで料金等ご相談したいのですが\n以下、ご都合はいかがでしょうか?',
           quickReply: {
             items: [
+              this.genPostbackAction(MeetingType.Line),
               this.genPostbackAction(MeetingType.Online),
               this.genPostbackAction(MeetingType.Store),
               this.genPostbackAction(MeetingType.No),
@@ -194,7 +194,7 @@ export class ChatService {
           altText: 'ご予約',
           template: {
             type: 'buttons',
-            text: 'Choose a Time&date of Online/Shop meeting',
+            text: 'ご都合の良い日時/お時間をお選びください。なお火曜日は定休日です',
             actions: [
               {
                 type: 'datetimepicker',
@@ -215,7 +215,7 @@ export class ChatService {
   ) {
     const message = {
       type: 'text',
-      text: '他、当店にお伝えしたいことはありますでしょうか?\ntype "No" if no extra comment',
+      text: '他、当店にお伝えしたいことはありますでしょうか?\nなければ無しとご記載ください',
     };
     await this.client.replyMessage({
       replyToken: token,
@@ -236,22 +236,10 @@ export class ChatService {
 
   private async handleMessageEvent(event: MessageEvent) {
     if (event.source.type !== 'user') return;
-    const user = await this.client.getProfile(event.source.userId);
+    if (event.message.type !== 'text' && event.message.type !== 'image') return;
+
     const reservation = await this.getReservation(event.source.userId);
     const latestReservation = reservation.length > 0 ? reservation[0] : null;
-    if (event.message.type === 'text' && event.message.text === '予約する')
-      if (
-        latestReservation === null ||
-        latestReservation.Status === Status.Step8End
-      )
-        await this.sendStep1Message(event.replyToken, user.displayName);
-      else if (latestReservation.Status === Status.Step2SelectTargetType)
-        await this.sendStep2Message(event.replyToken);
-      else if (latestReservation.Status === Status.Step3SelectQuantity)
-        await this.sendStep3Message(event.replyToken);
-      else if (latestReservation.Status === Status.Step4RequestPhoto)
-        await this.sendStep4Message(event.replyToken);
-
     if (
       event.message.type === 'text' &&
       latestReservation?.Status === Status.Step7ExtraComment
@@ -308,7 +296,7 @@ export class ChatService {
       const buffer = Buffer.concat(chunks);
 
       const fileType = await fromBuffer(buffer);
-      const filename = `${user.userId}/${
+      const filename = `${event.source.userId}/${
         latestReservation.CreatedAt
       }/${Date.now()}.${fileType?.ext}`;
       const readableStream = new Readable({
@@ -338,7 +326,7 @@ export class ChatService {
             altText: '完了?',
             template: {
               type: 'buttons',
-              text: '完了?',
+              text: '全体の写真及び修理/カスタム個所の撮影がすべて終わった場合、以下の完了ボタンを押してください。もし追加がある場合は再度、上のアップロードボタンを押してください',
               actions: [{ type: 'postback', label: '完了', data: '完了' }],
             },
           },
@@ -356,7 +344,7 @@ export class ChatService {
     if (
       latestReservation === null ||
       latestReservation.Status === Status.Step8End
-    )
+    ) {
       if (event.postback.data === OrderType.Rework)
         await this.client.replyMessage({
           replyToken: event.replyToken,
@@ -376,7 +364,7 @@ export class ChatService {
           messages: [
             {
               type: 'text',
-              text: 'Free Comment and Our employee will see comment',
+              text: '承知しました! 内容の記載をお願いします',
             },
             {
               type: 'text',
@@ -395,8 +383,9 @@ export class ChatService {
           OrderType: event.postback.data,
         });
         await this.sendStep2Message(event.replyToken);
-      } else await this.sendStep1Message(event.replyToken, user.displayName);
-    else if (latestReservation.Status === Status.Step2SelectTargetType)
+      } else if (event.postback.data !== OrderType.Back)
+        await this.sendStep1Message(event.replyToken, user.displayName);
+    } else if (latestReservation.Status === Status.Step2SelectTargetType)
       if (
         event.postback.data === TargetType.Wallet ||
         event.postback.data === TargetType.Bags ||
@@ -435,6 +424,7 @@ export class ChatService {
       } else await this.sendStep4Message(event.replyToken);
     else if (latestReservation.Status === Status.Step5SelectMeetingType)
       if (
+        event.postback.data === MeetingType.Line ||
         event.postback.data === MeetingType.Online ||
         event.postback.data === MeetingType.Store
       ) {
@@ -470,27 +460,9 @@ export class ChatService {
       await this.sendStep7Message(event.replyToken);
   }
 
-  private async handleFollowEvent(event: FollowEvent) {
-    if (event.source.type !== 'user') return;
-    const botInfo = await this.client.getBotInfo();
-    const user = await this.client.getProfile(event.source.userId);
-
-    await this.client.replyMessage({
-      replyToken: event.replyToken,
-      messages: [
-        {
-          type: 'text',
-          text: `${user.displayName}さん\nはじめまして！${botInfo.displayName}です。\n友だち追加ありがとうございます\n\nこのアカウントでは、最新情報を定期的に配信していきます\nどうぞお楽しみに`,
-        },
-        { type: 'text', text: 'Please type "予約する" to start reservation' },
-      ],
-    });
-  }
-
   private async handleWebhookEvent(event: WebhookEvent) {
     if (event.type === 'message') await this.handleMessageEvent(event);
-    if (event.type === 'postback') await this.handlePostbackEvent(event);
-    else if (event.type === 'follow') await this.handleFollowEvent(event);
+    else if (event.type === 'postback') await this.handlePostbackEvent(event);
   }
 
   public async handleRequestBody(event: WebhookRequestBody) {
