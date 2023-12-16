@@ -240,46 +240,58 @@ export class ChatService {
 
     const reservation = await this.getReservation(event.source.userId);
     const latestReservation = reservation.length > 0 ? reservation[0] : null;
-    if (
-      event.message.type === 'text' &&
-      latestReservation?.Status === Status.Step7ExtraComment
-    ) {
-      await this.saveReservation({
-        ...latestReservation,
-        Status: Status.Step8End,
-        Comment: event.message.text,
-      });
-      await this.client.replyMessage({
-        replyToken: event.replyToken,
-        messages: [
-          {
-            type: 'text',
-            text: 'ありがとうございます。',
-          },
-          {
-            type: 'text',
-            text: `今回のチャットでは以下の通りとなりました。ご確認ください。\nご用件 : ${
-              latestReservation.OrderType
-            }\n修理対象 : ${latestReservation.TargetType}\n修理箇所 : ${
-              latestReservation.Quantity
-            }\n写真 : アップロードいただいた通り\nご相談 : ${
-              latestReservation.MeetingType
-            }\nご相談日時 : ${
-              latestReservation.MeetingTime
-                ? format(
-                    new Date(latestReservation.MeetingTime),
-                    'yyyy/MM/ddのHH:mm'
-                  )
-                : '-'
-            }\nその他 : ${event.message.text}`,
-          },
-          {
-            type: 'text',
-            text: 'この度はご利用ありがとうございました。また、ご連絡差し上げます。',
-          },
-        ],
-      });
-    }
+    if (event.message.type === 'text')
+      if (latestReservation?.Status === Status.Step7ExtraComment) {
+        await this.saveReservation({
+          ...latestReservation,
+          Status: Status.Step8End,
+          Comment: event.message.text,
+        });
+        await this.client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [
+            {
+              type: 'text',
+              text: 'ありがとうございます。',
+            },
+            {
+              type: 'text',
+              text: `今回のチャットでは以下の通りとなりました。ご確認ください。\nご用件 : ${
+                latestReservation.OrderType
+              }\n修理対象 : ${latestReservation.TargetType}\n修理箇所 : ${
+                latestReservation.Quantity
+              }\n写真 : アップロードいただいた通り\nご相談 : ${
+                latestReservation.MeetingType
+              }\nご相談日時 : ${
+                latestReservation.MeetingTime
+                  ? format(
+                      new Date(latestReservation.MeetingTime),
+                      'yyyy/MM/ddのHH:mm'
+                    )
+                  : '-'
+              }\nその他 : ${event.message.text}`,
+            },
+            {
+              type: 'text',
+              text: 'この度はご利用ありがとうございました。また、ご連絡差し上げます。',
+            },
+          ],
+        });
+      } else if (latestReservation?.Status === Status.Step1OrderTypeOther) {
+        await this.saveReservation({
+          ...latestReservation,
+          Status: Status.Step8End,
+        });
+        await this.client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [
+            {
+              type: 'text',
+              text: 'この度はご利用ありがとうございました。また、ご連絡差し上げます。',
+            },
+          ],
+        });
+      }
 
     if (
       event.message.type === 'image' &&
@@ -327,7 +339,10 @@ export class ChatService {
             template: {
               type: 'buttons',
               text: '全体の写真及び修理/カスタム個所の撮影がすべて終わった場合、以下の完了ボタンを押してください。もし追加がある場合は再度、上のアップロードボタンを押してください',
-              actions: [{ type: 'postback', label: '完了', data: '完了' }],
+              actions: [
+                { type: 'camera', label: 'アップロード' },
+                { type: 'postback', label: '完了', data: '完了' },
+              ],
             },
           },
         ],
@@ -356,7 +371,7 @@ export class ChatService {
         await this.saveReservation({
           UserId: user.userId,
           CreatedAt: new Date().toISOString(),
-          Status: Status.Step8End,
+          Status: Status.Step1OrderTypeOther,
           OrderType: event.postback.data,
         });
         await this.client.replyMessage({
@@ -365,10 +380,6 @@ export class ChatService {
             {
               type: 'text',
               text: '承知しました! 内容の記載をお願いします',
-            },
-            {
-              type: 'text',
-              text: 'この度はご利用ありがとうございました。また、ご連絡差し上げます。',
             },
           ],
         });
@@ -385,7 +396,17 @@ export class ChatService {
         await this.sendStep2Message(event.replyToken);
       } else if (event.postback.data !== OrderType.Back)
         await this.sendStep1Message(event.replyToken, user.displayName);
-    } else if (latestReservation.Status === Status.Step2SelectTargetType)
+    } else if (latestReservation.Status === Status.Step1OrderTypeOther)
+      await this.client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [
+          {
+            type: 'text',
+            text: '承知しました! 内容の記載をお願いします',
+          },
+        ],
+      });
+    else if (latestReservation.Status === Status.Step2SelectTargetType)
       if (
         event.postback.data === TargetType.Wallet ||
         event.postback.data === TargetType.Bags ||

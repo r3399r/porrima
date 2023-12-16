@@ -13,7 +13,8 @@
     "clean": "del-cli dist lib -f",
     "build:layer": "npm install --production && mkdir -p dist/nodejs && cp -R node_modules dist/nodejs",
     "build:lambda": "npm install && tspc",
-    "pre:deploy": "run-s clean build:*"
+    "pre:deploy": "run-s clean build:*",
+    "richmenu": "ts-node richmenu/index.ts"
   },
   "dependencies": {
     "@line/bot-sdk": "^8.0.2",

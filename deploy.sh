@@ -13,6 +13,7 @@ echo deploy backend AWS...
 cd ./backend
 npm install
 npm run pre:deploy
+npm run richmenu
 aws cloudformation package --template-file aws/cloudformation/template.yaml --output-template-file packaged.yaml --s3-bucket ginzacraftworks-cf-midway
 aws cloudformation deploy --template-file packaged.yaml --stack-name $project-$env-stack --parameter-overrides TargetEnvr=$env Project=$project --no-fail-on-empty-changeset --s3-bucket ginzacraftworks-cf-midway --capabilities CAPABILITY_NAMED_IAM
 echo ====================================================================================

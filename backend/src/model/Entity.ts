@@ -1,5 +1,5 @@
 export enum Status {
-  Step1SelectOrderType = 'order-type',
+  Step1OrderTypeOther = 'order-type-other',
   Step2SelectTargetType = 'target-type',
   Step3SelectQuantity = 'quantity',
   Step4RequestPhoto = 'photo',
