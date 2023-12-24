@@ -281,6 +281,7 @@ export class ChatService {
         await this.saveReservation({
           ...latestReservation,
           Status: Status.Step8End,
+          Comment: event.message.text,
         });
         await this.client.replyMessage({
           replyToken: event.replyToken,
