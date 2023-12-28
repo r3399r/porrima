@@ -2,7 +2,6 @@ import { Profile } from '@line/bot-sdk';
 import { MessagingApiClient } from '@line/bot-sdk/dist/messaging-api/api';
 import { DynamoDB, S3 } from 'aws-sdk';
 import { Converter, Key, ScanOutput } from 'aws-sdk/clients/dynamodb';
-import { format } from 'date-fns';
 import { inject, injectable } from 'inversify';
 import { Reservation } from 'src/model/Entity';
 import { compare } from 'src/util/compare';
@@ -74,9 +73,7 @@ export class ReservationService {
 
         return {
           ...v,
-          MeetingTime: v.MeetingTime
-            ? format(new Date(v.MeetingTime), 'yyyy/MM/dd HH:mm')
-            : '-',
+          MeetingTime: v.MeetingTime ?? '-',
           Photo: photo,
           Profile: profile,
         };

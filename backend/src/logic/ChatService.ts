@@ -11,7 +11,7 @@ import {
 } from '@line/bot-sdk/dist/messaging-api/api';
 import { DynamoDB, S3 } from 'aws-sdk';
 import { Converter } from 'aws-sdk/clients/dynamodb';
-import { format } from 'date-fns';
+import { isMatch } from 'date-fns';
 import { fromBuffer } from 'file-type';
 import { inject, injectable } from 'inversify';
 import {
@@ -200,10 +200,9 @@ export class ChatService {
             text: 'ご都合の良い日時/お時間をお選びください。なお火曜日は定休日です',
             actions: [
               {
-                type: 'datetimepicker',
+                type: 'uri',
                 label: 'ご予約',
-                data: 'ご予約',
-                mode: 'datetime',
+                uri: `https://liff.line.me/${process.env.LIFF_ID}`,
               },
             ],
           },
@@ -232,10 +231,7 @@ export class ChatService {
         ? [
             {
               type: 'text',
-              text: `ご予約ありがとうございます。${format(
-                new Date(meeting.time),
-                'yyyy/MM/ddのHH:mm'
-              )}~、${meeting.type} ご予約を承りました。`,
+              text: `ご予約ありがとうございます。${meeting.time}~、${meeting.type} ご予約を承りました。`,
             },
             ...message,
           ]
@@ -250,7 +246,21 @@ export class ChatService {
     const reservation = await this.getReservation(event.source.userId);
     const latestReservation = reservation.length > 0 ? reservation[0] : null;
     if (event.message.type === 'text')
-      if (latestReservation?.Status === Status.Step7ExtraComment) {
+      if (latestReservation?.Status === Status.Step6SelectMeetingTime) {
+        // validate text
+        const formatIsMatch = isMatch(event.message.text, 'yyyy-MM-ddのHH:mm');
+        if (formatIsMatch) {
+          await this.saveReservation({
+            ...latestReservation,
+            Status: Status.Step7ExtraComment,
+            MeetingTime: event.message.text,
+          });
+          await this.sendStep7Message(event.replyToken, {
+            type: latestReservation.MeetingType ?? '',
+            time: event.message.text,
+          });
+        } else await this.sendStep6Message(event.replyToken);
+      } else if (latestReservation?.Status === Status.Step7ExtraComment) {
         await this.saveReservation({
           ...latestReservation,
           Status: Status.Step8End,
@@ -272,12 +282,7 @@ export class ChatService {
               }\n写真 : アップロードいただいた通り\nご相談 : ${
                 latestReservation.MeetingType
               }\nご相談日時 : ${
-                latestReservation.MeetingTime
-                  ? format(
-                      new Date(latestReservation.MeetingTime),
-                      'yyyy/MM/ddのHH:mm'
-                    )
-                  : '-'
+                latestReservation.MeetingTime ?? '-'
               }\nその他 : ${event.message.text}`,
             },
             {
@@ -478,19 +483,7 @@ export class ChatService {
         await this.sendStep7Message(event.replyToken);
       } else await this.sendStep5Message(event.replyToken);
     else if (latestReservation.Status === Status.Step6SelectMeetingTime)
-      if (event.postback.data === 'ご予約' && event.postback.params) {
-        const datetime = (event.postback.params as { datetime: string })
-          .datetime;
-        await this.saveReservation({
-          ...latestReservation,
-          Status: Status.Step7ExtraComment,
-          MeetingTime: datetime,
-        });
-        await this.sendStep7Message(event.replyToken, {
-          type: latestReservation.MeetingType ?? '',
-          time: datetime,
-        });
-      } else await this.sendStep6Message(event.replyToken);
+      await this.sendStep6Message(event.replyToken);
     else if (latestReservation.Status === Status.Step7ExtraComment)
       await this.sendStep7Message(event.replyToken);
   }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import axios from 'axios';
+import { format } from 'date-fns';
 import { ref } from 'vue';
 
 const reservation = ref();
@@ -15,7 +16,7 @@ axios
 
 <template>
   <div class="flex items-center gap-2 border-b border-solid border-b-black p-2 font-bold">
-    <div class="w-1/12"></div>
+    <div class="w-1/12">作成日</div>
     <div class="w-2/12">名前</div>
     <div class="w-1/12">ご用件</div>
     <div class="w-1/12">修理対象</div>
@@ -24,7 +25,7 @@ axios
     <div class="w-1/12">ご相談</div>
     <div class="w-1/12">ご相談日時</div>
     <div class="w-2/12">その他</div>
-    <div class="w-1/12">Status</div>
+    <div class="w-1/12">状態</div>
   </div>
   <div
     class="flex items-center gap-2 border-b border-solid border-b-black p-2"
@@ -33,10 +34,13 @@ axios
     :key="index"
   >
     <div class="flex w-1/12 items-center justify-center">
+      {{ format(r.CreatedAt, 'yyyy-MM-dd HH:mm:ss') }}
+    </div>
+    <div class="flex w-2/12 items-center gap-2">
       <img v-if="r.Profile.pictureUrl" :src="r.Profile.pictureUrl" class="w-10 rounded-full" />
       <div v-else class="h-10 w-10 rounded-full bg-gray-400"></div>
+      <div>{{ r.Profile.displayName }}</div>
     </div>
-    <div class="w-2/12">{{ r.Profile.displayName }}</div>
     <div class="w-1/12">{{ r.OrderType }}</div>
     <div class="w-1/12">{{ r.TargetType }}</div>
     <div class="w-1/12">{{ r.Quantity }}</div>
@@ -52,7 +56,7 @@ axios
       class="w-1/12"
       :class="{ 'text-green-700': r.Status === 'end', 'text-red-700': r.Status !== 'end' }"
     >
-      {{ r.Status === 'end' ? 'Done' : 'Not yet' }}
+      {{ r.Status === 'end' ? '終わり' : 'まだ' }}
     </div>
   </div>
 </template>

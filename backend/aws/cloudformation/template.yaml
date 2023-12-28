@@ -165,6 +165,7 @@ Resources:
           PROJECT: !Sub ${Project}
           ENVR: !Sub ${TargetEnvr}
           CHANNEL_TOKEN: !Sub '{{resolve:ssm:${Project}-${TargetEnvr}-line-token:1}}'
+          LIFF_ID: !Sub '{{resolve:ssm:${Project}-${TargetEnvr}-liff:1}}'
   InvokePermissionLambdaApi:
     Type: AWS::Lambda::Permission
     DependsOn: [ServerlessApi, LambdaApiFunction]

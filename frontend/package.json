@@ -4,19 +4,24 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "env-file": "echo VITE_LIFF_ID=$(aws ssm get-parameter --name porrima-prod-liff | jq .Parameter.Value | sed -e 's/^\"//' -e 's/\"$//') >> .env",
     "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
+    "build": "run-s clean env-file type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force",
+    "clean": "del-cli dist .env -f",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/",
     "fix": "run-s lint format"
   },
   "dependencies": {
+    "@line/liff": "^2.23.0",
     "axios": "^1.6.2",
+    "date-fns": "^3.0.6",
     "vue": "^3.3.10",
-    "vue-router": "^4.2.5"
+    "vue-router": "^4.2.5",
+    "vuestic-ui": "^1.8.7"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.3.3",
@@ -27,6 +32,7 @@
     "@vue/eslint-config-typescript": "^12.0.0",
     "@vue/tsconfig": "^0.4.0",
     "autoprefixer": "^10.4.16",
+    "del-cli": "^5.1.0",
     "eslint": "^8.49.0",
     "eslint-plugin-tailwindcss": "^3.13.0",
     "eslint-plugin-vue": "^9.17.0",
