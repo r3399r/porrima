@@ -32,7 +32,7 @@ const main = async () => {
     },
     selected: true,
     name: 'default',
-    chatBarText: 'キーボードの表示は左側のボタ',
+    chatBarText: 'メニュー',
     areas: [
       {
         bounds: {

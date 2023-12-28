@@ -158,7 +158,10 @@ export class ChatService {
           template: {
             type: 'buttons',
             text: '修理/カスタム対象の全体像と詳細箇所の写真をお願いします!\nアップロードが終わり次第「完了」ボタンを押してください!',
-            actions: [{ type: 'camera', label: 'アップロード' }],
+            actions: [
+              { type: 'camera', label: 'アップロード' },
+              { type: 'postback', label: 'スキップ', data: '完了' },
+            ],
           },
         },
       ],
@@ -213,10 +216,16 @@ export class ChatService {
     token: string,
     meeting?: { type: string; time: string }
   ) {
-    const message = {
-      type: 'text',
-      text: '他、当店にお伝えしたいことはありますでしょうか?\nなければ無しとご記載ください',
-    };
+    const message = [
+      {
+        type: 'text',
+        text: '他、当店にお伝えしたいことはありますでしょうか?\nなければ無しとご記載ください',
+      },
+      {
+        type: 'text',
+        text: 'キーボードの表示は左下のキーボードマークを押してください',
+      },
+    ];
     await this.client.replyMessage({
       replyToken: token,
       messages: meeting
@@ -228,9 +237,9 @@ export class ChatService {
                 'yyyy/MM/ddのHH:mm'
               )}~、${meeting.type} ご予約を承りました。`,
             },
-            message,
+            ...message,
           ]
-        : [message],
+        : message,
     });
   }
 
@@ -381,6 +390,10 @@ export class ChatService {
             {
               type: 'text',
               text: '承知しました! 内容の記載をお願いします',
+            },
+            {
+              type: 'text',
+              text: 'キーボードの表示は左下のキーボードマークを押してください',
             },
           ],
         });
