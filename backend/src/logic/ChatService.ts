@@ -174,7 +174,7 @@ export class ChatService {
       messages: [
         {
           type: 'text',
-          text: 'お写真ありがとうございます。 改めて状態を確認したうえで料金等ご相談したいのですが\n以下、ご都合はいかがでしょうか?',
+          text: 'ありがとうございます。 改めて状態を確認したうえで料金等ご相談したいのですが\n以下、ご都合はいかがでしょうか?',
           quickReply: {
             items: [
               this.genPostbackAction(MeetingType.Line),

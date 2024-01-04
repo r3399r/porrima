@@ -5,13 +5,15 @@ import { format, isFuture, subMinutes } from 'date-fns';
 
 const date = ref<Date>();
 const time = ref<Date>();
+const isSubmitted = ref<boolean>(false);
 
 liff.init({
   liffId: import.meta.env.VITE_LIFF_ID,
 });
 
 const onSubmit = () => {
-  if (date.value && time.value)
+  if (date.value && time.value) {
+    isSubmitted.value = true;
     liff
       .sendMessages([
         {
@@ -24,20 +26,32 @@ const onSubmit = () => {
           ),
         },
       ])
-      .then(() => liff.closeWindow());
+      .then(() => liff.closeWindow())
+      .catch(() => {
+        isSubmitted.value = false;
+      });
+  }
 };
 </script>
 
 <template>
   <div class="flex h-screen w-screen items-center justify-center">
-    <div class="flex flex-col gap-2">
-      <VaDateInput v-model="date" :allowed-days="(date) => isFuture(date) && date.getDay() !== 2" />
+    <div class="flex w-4/5 flex-col gap-2">
+      <div>Please select a date & time</div>
+      <VaDateInput
+        v-model="date"
+        :allowed-days="(date) => isFuture(date) && date.getDay() !== 2"
+        clearable
+        placeholder="Please select a date"
+      />
       <VaTimeInput
         v-model="time"
         :hours-filter="(h) => h >= 10 && h <= 20"
         :minutes-filter="(m) => m % 10 === 0"
+        clearable
+        placeholder="Please select a time"
       />
-      <VaButton :disabled="!date || !time" @click="onSubmit">Submit</VaButton>
+      <VaButton :disabled="!date || !time || isSubmitted" @click="onSubmit">Submit</VaButton>
       <div class="h-[30vh]"></div>
     </div>
   </div>
