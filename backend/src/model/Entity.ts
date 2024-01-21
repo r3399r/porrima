@@ -13,7 +13,7 @@ export enum OrderType {
   Repair = '修理',
   Custom = 'カスタム',
   Rework = 'ReWork',
-  Other = 'その他',
+  Other = 'その他 お問い合わせ',
   Back = '戻る',
 }
 

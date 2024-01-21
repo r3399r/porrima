@@ -4,7 +4,7 @@ import { DynamoDB, S3 } from 'aws-sdk';
 import { Converter, Key, ScanOutput } from 'aws-sdk/clients/dynamodb';
 import { inject, injectable } from 'inversify';
 import { Reservation } from 'src/model/Entity';
-import { compare } from 'src/util/compare';
+import { compare } from 'src/utils/compare';
 
 /**
  * Service class for reservation

@@ -22,7 +22,7 @@ import {
   TargetType,
 } from 'src/model/Entity';
 import { InternalServerError } from 'src/model/error';
-import { compare } from 'src/util/compare';
+import { compare } from 'src/utils/compare';
 
 /**
  * Service class for chat

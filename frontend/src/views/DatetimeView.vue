@@ -37,19 +37,19 @@ const onSubmit = () => {
 <template>
   <div class="flex h-screen w-screen items-center justify-center">
     <div class="flex w-4/5 flex-col gap-2">
-      <div>Please select a date & time</div>
+      <div>ご都合の良い日時をお選びください</div>
       <VaDateInput
         v-model="date"
         :allowed-days="(date) => isFuture(date) && date.getDay() !== 2"
         clearable
-        placeholder="Please select a date"
+        placeholder="Date"
       />
       <VaTimeInput
         v-model="time"
         :hours-filter="(h) => h >= 10 && h <= 20"
         :minutes-filter="(m) => m % 10 === 0"
         clearable
-        placeholder="Please select a time"
+        placeholder="Time"
       />
       <VaButton :disabled="!date || !time || isSubmitted" @click="onSubmit">Submit</VaButton>
       <div class="h-[30vh]"></div>
