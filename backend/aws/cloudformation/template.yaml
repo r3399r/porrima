@@ -32,6 +32,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonAPIGatewayInvokeFullAccess
         - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
   ##############################################
   ##### RESTful API and associated Lambdas #####
   ##############################################
@@ -166,6 +167,7 @@ Resources:
           ENVR: !Sub ${TargetEnvr}
           CHANNEL_TOKEN: !Sub '{{resolve:ssm:${Project}-${TargetEnvr}-line-token:1}}'
           LIFF_ID: !Sub '{{resolve:ssm:${Project}-${TargetEnvr}-liff:1}}'
+          SNS_TOPIC_ARN: !Ref SNSTopic
   InvokePermissionLambdaApi:
     Type: AWS::Lambda::Permission
     DependsOn: [ServerlessApi, LambdaApiFunction]
@@ -270,3 +272,16 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub ${Project}-${TargetEnvr}-storage
+  #######################################
+  ##### SNS Topic and Subscriptions #####
+  #######################################
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub ${Project}-${TargetEnvr}-topic
+      Subscription:
+        - Endpoint: customer_support@ginzacraftworks.com
+          Protocol: email
+        - Endpoint: lamplighter.planet@gmail.com
+          Protocol: email
+      TopicName: !Sub ${Project}-${TargetEnvr}-topic

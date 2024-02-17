@@ -3,7 +3,7 @@ import {
   MessagingApiBlobClient,
   MessagingApiClient,
 } from '@line/bot-sdk/dist/messaging-api/api';
-import { DynamoDB, S3 } from 'aws-sdk';
+import { DynamoDB, S3, SNS } from 'aws-sdk';
 import { Container } from 'inversify';
 import { ChatService } from './logic/ChatService';
 import { ReservationService } from './logic/ReservationService';
@@ -31,5 +31,6 @@ container.bind(MessagingApiBlobClient).toDynamicValue(
 // AWS
 container.bind(DynamoDB).toDynamicValue(() => new DynamoDB());
 container.bind(S3).toDynamicValue(() => new S3());
+container.bind(SNS).toDynamicValue(() => new SNS());
 
 export { container as bindings };

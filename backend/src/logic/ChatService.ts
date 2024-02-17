@@ -9,7 +9,7 @@ import {
   MessagingApiBlobClient,
   MessagingApiClient,
 } from '@line/bot-sdk/dist/messaging-api/api';
-import { DynamoDB, S3 } from 'aws-sdk';
+import { DynamoDB, S3, SNS } from 'aws-sdk';
 import { Converter } from 'aws-sdk/clients/dynamodb';
 import { isMatch } from 'date-fns';
 import { fromBuffer } from 'file-type';
@@ -37,7 +37,20 @@ export class ChatService {
   private readonly dynamoDb!: DynamoDB;
   @inject(S3)
   private readonly s3!: S3;
+  @inject(SNS)
+  private readonly sns!: SNS;
   private readonly tableName = 'Reservation';
+
+  private async notify() {
+    return await this.sns
+      .publish({
+        TopicArn: process.env.SNS_TOPIC_ARN,
+        Subject: 'A new customer starts a reservation process',
+        Message:
+          'A new customer starts a reservation process!\nGo to https://dzv5g9z0j8v8j.cloudfront.net/',
+      })
+      .promise();
+  }
 
   private async getReservation(userId: string) {
     const res = await this.dynamoDb
@@ -402,6 +415,7 @@ export class ChatService {
             },
           ],
         });
+        await this.notify();
       } else if (
         event.postback.data === OrderType.Repair ||
         event.postback.data === OrderType.Custom
@@ -413,6 +427,7 @@ export class ChatService {
           OrderType: event.postback.data,
         });
         await this.sendStep2Message(event.replyToken);
+        await this.notify();
       } else if (event.postback.data !== OrderType.Back)
         await this.sendStep1Message(event.replyToken, user.displayName);
     } else if (latestReservation.Status === Status.Step1OrderTypeOther)
