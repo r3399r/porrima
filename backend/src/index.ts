@@ -1,3 +1,5 @@
+import { bindings } from './bindings';
+import { DbCleanService } from './logic/DbCleanService';
 import { LambdaContext, LambdaEvent } from './model/Lambda';
 import line from './routes/line';
 import reservation from './routes/reservation';
@@ -24,4 +26,10 @@ export const api = async (event: LambdaEvent, _context: LambdaContext) => {
 
     return errorOutput(e);
   }
+};
+
+export const dbClean = async (_event: unknown, _context: unknown) => {
+  let service: DbCleanService | null = null;
+  service = bindings.get(DbCleanService);
+  await service.cleanup();
 };

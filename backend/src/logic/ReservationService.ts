@@ -19,7 +19,7 @@ export class ReservationService {
   private readonly s3!: S3;
   private readonly tableName = 'Reservation';
 
-  private async scan() {
+  public async scan() {
     let reservations: Reservation[] = [];
     let key: Key | undefined = undefined;
     do {

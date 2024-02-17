@@ -33,6 +33,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
         - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+        - arn:aws:iam::aws:policy/AmazonEventBridgeFullAccess
   ##############################################
   ##### RESTful API and associated Lambdas #####
   ##############################################
@@ -176,6 +177,31 @@ Resources:
       Action: 'lambda:InvokeFunction'
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ServerlessApi}/*
+  LambdaDbClean:
+    Type: AWS::Serverless::Function
+    Properties:
+      Architectures: [arm64]
+      Handler: index.dbClean
+      Runtime: nodejs18.x
+      FunctionName: !Sub ${Project}-${TargetEnvr}-dbClean
+      Role: !GetAtt ExecutionRole.Arn
+      CodeUri: ../../lib/src
+      MemorySize: 128
+      Timeout: 30
+      Layers: [!Ref LambdaLayer]
+      Environment:
+        Variables:
+          PROJECT: !Sub ${Project}
+          ENVR: !Sub ${TargetEnvr}
+          CHANNEL_TOKEN: !Sub '{{resolve:ssm:${Project}-${TargetEnvr}-line-token:1}}'
+  InvokePermissionDbClean:
+    Type: AWS::Lambda::Permission
+    DependsOn: [EventBridge, LambdaDbClean]
+    Properties:
+      FunctionName: !Sub ${Project}-${TargetEnvr}-dbClean
+      Action: 'lambda:InvokeFunction'
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventBridge.Arn
   LambdaLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -285,3 +311,16 @@ Resources:
         - Endpoint: lamplighter.planet@gmail.com
           Protocol: email
       TopicName: !Sub ${Project}-${TargetEnvr}-topic
+  #######################
+  ##### EventBridge #####
+  #######################
+  EventBridge:
+    Type: AWS::Events::Rule
+    DependsOn: [LambdaDbClean]
+    Properties:
+      Name: !Sub ${Project}-${TargetEnvr}-db-clean
+      ScheduleExpression: cron(0 0 * * ? *)
+      State: ENABLED
+      Targets: 
+        - Arn: !GetAtt LambdaDbClean.Arn
+          Id: !Sub ${Project}-${TargetEnvr}-db-clean
